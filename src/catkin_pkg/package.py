@@ -505,7 +505,7 @@ def _check_known_attributes(node, known):
     return []
 
 
-def parse_package_string(data, filename=None, warnings=None):
+def parse_package_string(data, filename=None, warnings=None, options=None):
     """
     Parse package.xml string contents.
 
@@ -583,7 +583,7 @@ def parse_package_string(data, filename=None, warnings=None):
     # dependencies and relationships
     pkg.build_depends = _get_dependencies(root, 'build_depend')
     pkg.buildtool_depends = _get_dependencies(root, 'buildtool_depend')
-    pkg.optional_depends = _get_dependencies(root, 'optional_depend')
+    pkg.optional_depends = _get_optional_dependencies(root, 'optional_depend', options)
     if pkg.package_format == 1:
         run_depends = _get_dependencies(root, 'run_depend')
         for d in run_depends:
@@ -744,6 +744,24 @@ def _get_dependencies(parent, tagname):
         depends.append(depend)
     return depends
 
+def _get_optional_dependencies(parent, tagname, optionsname):
+    depends = []
+    for node in _get_nodes(parent, tagname):
+        depend = Dependency(_get_node_value(node))
+        for option in ('option'):
+            if option not in optionsname:
+                setattr(depend, option, _get_node_attr(node, option, None))
+        depends.append(depend)
+    return depends
+
+def _get_all_options(parent, tagname):
+    options = []
+    for node in _get_nodes(parent, tagname):
+        depend = Dependency(_get_node_value(node))
+        for option in ('option'):
+            if option not in options:
+                options.append(option)
+    return options
 
 def _get_group_dependencies(parent, tagname):
     from .group_dependency import GroupDependency

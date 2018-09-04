@@ -749,7 +749,7 @@ def _get_optional_dependencies(parent, tagname, optionsname):
     for node in _get_nodes(parent, tagname):
         depend = Dependency(_get_node_value(node))
         for option in ('option'):
-            if option not in optionsname:
+            if option in optionsname:
                 setattr(depend, option, _get_node_attr(node, option, None))
         depends.append(depend)
     return depends

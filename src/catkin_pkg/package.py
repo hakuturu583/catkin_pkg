@@ -65,6 +65,7 @@ class Package(object):
         'exec_depends',
         'test_depends',
         'doc_depends',
+        'optional_depends',
         'conflicts',
         'replaces',
         'group_depends',
@@ -90,7 +91,7 @@ class Package(object):
                 setattr(self, attr, value)
         if 'depends' in kwargs:
             for d in kwargs['depends']:
-                for slot in [self.build_depends, self.build_export_depends, self.exec_depends]:
+                for slot in [self.build_depends, self.build_export_depends, self.exec_depends, self.optional_depends]:
                     if d not in slot:
                         slot.append(deepcopy(d))
             del kwargs['depends']
@@ -165,7 +166,7 @@ class Package(object):
         :rtype: bool
         """
         buildtool_depends = [d.name for d in self.buildtool_depends if d.name != 'catkin']
-        return len(self.build_depends + buildtool_depends + self.test_depends) > 0
+        return len(self.build_depends + buildtool_depends + self.test_depends + self.optional_depends) > 0
 
     def is_metapackage(self):
         """
@@ -191,6 +192,7 @@ class Package(object):
             'buildtool_export_depends',
             'exec_depends',
             'test_depends',
+            'optional_depends',
             'doc_depends',
             'conflicts',
             'replaces',
@@ -272,6 +274,7 @@ class Package(object):
             'buildtool_export': self.buildtool_export_depends,
             'exec': self.exec_depends,
             'test': self.test_depends,
+            'optional' : self.optional_depends,
             'doc': self.doc_depends
         }
         for dep_type, depends in dep_types.items():
@@ -580,6 +583,7 @@ def parse_package_string(data, filename=None, warnings=None):
     # dependencies and relationships
     pkg.build_depends = _get_dependencies(root, 'build_depend')
     pkg.buildtool_depends = _get_dependencies(root, 'buildtool_depend')
+    pkg.optional_depends = _get_dependencies(root, 'optional_depend')
     if pkg.package_format == 1:
         run_depends = _get_dependencies(root, 'run_depend')
         for d in run_depends:
@@ -595,7 +599,8 @@ def parse_package_string(data, filename=None, warnings=None):
             same_build_depends = ['build_depend' for d in pkg.build_depends if d.name == dep.name]
             same_build_export_depends = ['build_export_depend' for d in pkg.build_export_depends if d.name == dep.name]
             same_exec_depends = ['exec_depend' for d in pkg.exec_depends if d.name == dep.name]
-            if same_build_depends or same_build_export_depends or same_exec_depends:
+            same_optional_depends = ['optional_depend' for d in pkg.optional_depends if d.name == dep.name]
+            if same_build_depends or same_build_export_depends or same_exec_depends or same_optional_depends:
                 errors.append("The generic dependency on '%s' is redundant with: %s" % (dep.name, ', '.join(same_build_depends + same_build_export_depends + same_exec_depends)))
             # only append non-duplicates
             if not same_build_depends:
@@ -603,6 +608,8 @@ def parse_package_string(data, filename=None, warnings=None):
             if not same_build_export_depends:
                 pkg.build_export_depends.append(deepcopy(dep))
             if not same_exec_depends:
+                pkg.exec_depends.append(deepcopy(dep))
+            if not same_optional_depends:
                 pkg.exec_depends.append(deepcopy(dep))
         pkg.doc_depends = _get_dependencies(root, 'doc_depend')
     pkg.test_depends = _get_dependencies(root, 'test_depend')
